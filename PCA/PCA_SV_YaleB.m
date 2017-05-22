@@ -19,19 +19,17 @@ clc
 
 %Customize here
 ev = 60 % No. of eigenvectors to consider
-nFolder = 39; % No. of folders
+nFolder = 39; % No. of folders (folder 14 is missing)
 nTrain = 10; % No. of images per subject for train
 nTest = 60-nTrain; % No. of images per subject for test
 
 % Training Phase
 % Loading eye structure
 load baboon6400_256.mat
-% Loading the images to compute TrainSet, 200 x 10304 matrix - 
+% Loading the images to compute TrainSet
 fpath = mfilename('fullpath');
 [path fname ext] = fileparts(fpath);
 i = 0;
-x = 192/2;
-y = 168/2;
 var = 1;
 sigma = 3;
 W = spv_gaussfilter(edges,points, sigma);
@@ -50,7 +48,6 @@ for k = 1:nFolder
     myfiles = dir('*.pgm');
     %n = length(myfiles);
     n = nTrain;
-    fov = 0;
     for j = 1:n
         filename = myfiles(j).name;
         I = im2double(imread(filename));
@@ -67,13 +64,9 @@ for k = 1:nFolder
             X = 192;
             Y = 168;
         end
-        %J = single_scale_self_quotient_image(J);
-        %vals = reshape(J, 1, X*Y);
-        vals = importimg(imgGraph,J, [x y]);
+        vals = importimg(imgGraph,J);
         vals = spv_sqi(vals, edges, 5, 3, 0, W);
-        %vals = normalize(vals);
         TrainSet(i + j, :) = vals;
-           
     end
     i = i + nTrain;
 end
@@ -90,8 +83,7 @@ Covar = (TrainSet*TrainSet')/nTrainTotal;
 [V, D] = eigs(Covar, ev);
 TransformedEV = TrainSet'*V; % TransformedEV contains the final eigenvectors, transformed into the original space.
 clear Covar
-%clear V
-%clear D
+
 % Evaluating Eigenvector matrix for top ev eigenfaces. 
 % The eigenvectors corresponding to top ev eigenvalues are moved to N
 for i = 0:ev-1
@@ -107,14 +99,13 @@ clear U
 clear TrainSet
 clear TransformedEV
 % Testing Phase Preparation
-% Loading the images to compute TestSet matrix, typically sized: 200 x 10304
+% Loading the images to compute TestSet matrix
 nTestTotal = nTest*(nFolder-1);
 i = 0;
-fov = 0;
 for k = 1:nFolder
     
     temp = sprintf('%d', k);
-    if k==14
+    if k==14 % adjustments for dataset discrepancy
         continue;
     end
     if k<10
@@ -124,13 +115,11 @@ for k = 1:nFolder
     end
     cd(folder);
     myfiles = dir('*.pgm');
-    %n=length(myfiles);
-    n = 60;
+    n = 60; % adjustments for dataset discrepancy
     for j = 1:n
         if j<nTrain+1
             continue;
         end
-        
         filename = myfiles(j).name;
         I = im2double(imread(filename));        
         [X Y Z] = size(I);
@@ -139,19 +128,16 @@ for k = 1:nFolder
         else
             J = I;
         end
-        if X~=192
+        if X~=192 % adjustments for dataset discrepancy
             K = imresize(J, [192 168]);
             clear J
             J = K;
             X = 192;
             Y = 168;
         end
-        %J = single_scale_self_quotient_image(J);
-        %vals = reshape(J, 1, X*Y);
-        vals = importimg(imgGraph,J, [x y]);
+        vals = importimg(imgGraph,J);
         vals = spv_sqi(vals, edges, 5, 3, 0, W);
-        %vals = normalize(vals);
-        TestSet(i + j-nTrain + fov, :) = vals;
+        TestSet(i + j-nTrain, :) = vals;
         
     end
     i = i + nTest;
@@ -165,7 +151,6 @@ end
 clear Mean
 % Test image read from Test and comparing with nTrain images in reduced
 % dimensional space of size ev
-
 
 for i = 1:nTestTotal
     TestVect(:,i) = (N)'*(TestSet(i,:))'; % Testing set
@@ -190,7 +175,6 @@ tmpcnt = 1;
 sum = 0;
 
 for i = 1:nFolder-1
-    i
     for j = cnt: cnt + nTest-1
         if ((Tracker(tmpcnt) >= cnt) & (Tracker(tmpcnt) <= cnt + nTrain-1))
             accuracy = accuracy + 1;
@@ -198,13 +182,8 @@ for i = 1:nFolder-1
         else
             %incorrect_error(tmpcnt) = error(cnt);
         end
-        tmpcnt = tmpcnt + 1
+        tmpcnt = tmpcnt + 1;
     end
     cnt = cnt + nTrain;
 end
-accuracy*100/(nTest*38)
-% figure
-% subplot(1,2,1)
-% imshow(J)
-% subplot(1,2,2)
-% showvoronoi(vals,voronoiStruct)
+accuracy*100/(nTest*38) % 38 folders effectively
