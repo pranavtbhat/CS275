@@ -30,6 +30,9 @@ load baboon6400_256.mat
 fpath = mfilename('fullpath');
 [path fname ext] = fileparts(fpath);
 i = 0;
+x = 23;
+y = 56;
+fov = 0;
 for k = 1:nFolder
     temp = sprintf('%d', k);
     folder = strcat(path,'\Train\s', temp);
@@ -71,7 +74,7 @@ for i = 0:ev-1
     norm = (U'*U)^0.5;
     N(:,i+1) = N(:,i+1)/norm; % eigenvectors need to be normalized to form an orthogonal set.
 end
-
+clear TransformedEV
 for i = 1:nTrainTotal
     TrainVect(:,i) = (N)'*(TrainSet(i,:))'; % Training set
 end
@@ -80,6 +83,7 @@ end
 % Loading the images to compute TestSet matrix, typically sized: 200 x 10304
 nTestTotal = nTest*nFolder;
 i = 0;
+fov = 0;
 for k = 1:nFolder
     temp = sprintf('%d', k);
     folder = strcat(path,'\Test\s', temp);

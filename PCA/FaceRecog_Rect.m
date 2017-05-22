@@ -5,12 +5,12 @@
 % About Training set:
 % Number of subjects: 40
 % Number of Images per subject: 5
-% Image size: 92 x 112 (jpg format)
+% Image size: 92 x 112 (pgm format)
 % =======================================================================
 % About Testing set:
 % Number of subjects: 40
 % Number of Images per subject: 5
-% Image size: 92 x 112 (jpg format)
+% Image size: 92 x 112 (pgm format)
 % =======================================================================
 
 close all
@@ -32,7 +32,7 @@ for k = 1:nFolder
     temp = sprintf('%d', k);
     folder = strcat(path,'\Train\s', temp);
     cd(folder);
-    myfiles = dir('*.jpg');
+    myfiles = dir('*.pgm');
     n = length(myfiles);
     for j = 1:n
         filename = myfiles(j).name;
@@ -43,9 +43,6 @@ for k = 1:nFolder
         else
             J = I;
         end
-        J = single_scale_self_quotient_image(J);
-        %J = multi_scale_retinex(J);
-        %J=normalize8(homomorphic(J));
         vals = reshape(J, 1, X*Y);
         TrainSet(i + j, :) = vals;
     end
@@ -81,7 +78,7 @@ for k = 1:nFolder
     temp = sprintf('%d', k);
     folder = strcat(path,'\Test\s', temp);
     cd(folder);
-    myfiles = dir('*.jpg');
+    myfiles = dir('*.pgm');
     n=length(myfiles);
     for j = 1:n
         filename = myfiles(j).name;
@@ -92,9 +89,6 @@ for k = 1:nFolder
         else
             J = I;
         end
-        J = single_scale_self_quotient_image(J);
-        %J = multi_scale_retinex(J);
-        %J=normalize8(homomorphic(J));
         vals = reshape(J, 1, X*Y);
         TestSet(i + j, :) = vals;
     end
@@ -143,5 +137,4 @@ for i = 1:nFolder
     cnt = cnt + nTest;
 end
         
-%disp('Accuracy')
 accuracy = (accuracy)/2

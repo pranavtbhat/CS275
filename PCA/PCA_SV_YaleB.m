@@ -1,16 +1,16 @@
-% Script for face recognition using PCA and 1-NN classifier on ORL Image 
+% Script for face recognition using PCA and 1-NN classifier on YALE-B Image 
 % Database [SPACE VARIANT VERSION]
 % - Pranav Sodhani (04/23/2017)
 % =======================================================================
 % About Training set:
-% Number of subjects: 40
-% Number of Images per subject: 5
-% Image size: 92 x 112 (pgm format)
+% Number of subjects: 39
+% Number of Images per subject: nTrain
+% Image size: 192 x 168 (pgm format)
 % =======================================================================
 % About Testing set:
-% Number of subjects: 40
-% Number of Images per subject: 5
-% Image size: 92 x 112 (pgm format)
+% Number of subjects: 39
+% Number of Images per subject: nTest
+% Image size: 192 x 168 (pgm format)
 % =======================================================================
 
 close all
@@ -18,10 +18,10 @@ clear
 clc
 
 %Customize here
-ev = 25; % No. of eigenvectors to consider
-nFolder = 40; % No. of folders
-nTrain = 5; % No. of images per subject for train
-nTest = 5; % No. of images per subject for test
+ev = 60 % No. of eigenvectors to consider
+nFolder = 39; % No. of folders
+nTrain = 10; % No. of images per subject for train
+nTest = 60-nTrain; % No. of images per subject for test
 
 % Training Phase
 % Loading eye structure
@@ -30,12 +30,27 @@ load baboon6400_256.mat
 fpath = mfilename('fullpath');
 [path fname ext] = fileparts(fpath);
 i = 0;
+x = 192/2;
+y = 168/2;
+var = 1;
+sigma = 3;
+W = spv_gaussfilter(edges,points, sigma);
 for k = 1:nFolder
+    k
     temp = sprintf('%d', k);
-    folder = strcat(path,'\Train\s', temp);
+    if k==14
+        continue;
+    end
+    if k<10
+        folder = strcat(path,'\CroppedYale\CroppedYale\yaleB0', temp);
+    else
+        folder = strcat(path,'\CroppedYale\CroppedYale\yaleB', temp);
+    end
     cd(folder);
     myfiles = dir('*.pgm');
-    n = length(myfiles);
+    %n = length(myfiles);
+    n = nTrain;
+    fov = 0;
     for j = 1:n
         filename = myfiles(j).name;
         I = im2double(imread(filename));
@@ -45,48 +60,77 @@ for k = 1:nFolder
         else
             J = I;
         end
-        vals = importimg(imgGraph,J);
+        if X~=192
+            K = imresize(J, [192 168]);
+            clear J
+            J = K;
+            X = 192;
+            Y = 168;
+        end
+        %J = single_scale_self_quotient_image(J);
+        %vals = reshape(J, 1, X*Y);
+        vals = importimg(imgGraph,J, [x y]);
+        vals = spv_sqi(vals, edges, 5, 3, 0, W);
+        %vals = normalize(vals);
         TrainSet(i + j, :) = vals;
+           
     end
     i = i + nTrain;
 end
 
 % Mean centering for Images in Gallery, stored in TrainSet
-nTrainTotal = nTrain*nFolder;
+nTrainTotal = nTrain*(nFolder-1);
 Mean = sum(TrainSet,1)/(nTrainTotal);
 for i = 1:nTrainTotal
     TrainSet(i,:) = TrainSet(i,:) - Mean;
 end
-
+clear Mean
 % Finding Covariance matrix and eigenvectors -
 Covar = (TrainSet*TrainSet')/nTrainTotal;
-[V, D] = eig(Covar);
+[V, D] = eigs(Covar, ev);
 TransformedEV = TrainSet'*V; % TransformedEV contains the final eigenvectors, transformed into the original space.
-
+clear Covar
+%clear V
+%clear D
 % Evaluating Eigenvector matrix for top ev eigenfaces. 
 % The eigenvectors corresponding to top ev eigenvalues are moved to N
 for i = 0:ev-1
-    N(:,i+1) = TransformedEV(:,nTrainTotal-i);
+    N(:,i+1) = TransformedEV(:,i+1);
     U = N(:,i+1);
     norm = (U'*U)^0.5;
     N(:,i+1) = N(:,i+1)/norm; % eigenvectors need to be normalized to form an orthogonal set.
 end
-
 for i = 1:nTrainTotal
     TrainVect(:,i) = (N)'*(TrainSet(i,:))'; % Training set
 end
-
+clear U
+clear TrainSet
+clear TransformedEV
 % Testing Phase Preparation
 % Loading the images to compute TestSet matrix, typically sized: 200 x 10304
-nTestTotal = nTest*nFolder;
+nTestTotal = nTest*(nFolder-1);
 i = 0;
+fov = 0;
 for k = 1:nFolder
+    
     temp = sprintf('%d', k);
-    folder = strcat(path,'\Test\s', temp);
+    if k==14
+        continue;
+    end
+    if k<10
+        folder = strcat(path,'\CroppedYale\CroppedYale\yaleB0', temp);
+    else
+        folder = strcat(path,'\CroppedYale\CroppedYale\yaleB', temp);
+    end
     cd(folder);
     myfiles = dir('*.pgm');
-    n=length(myfiles);
+    %n=length(myfiles);
+    n = 60;
     for j = 1:n
+        if j<nTrain+1
+            continue;
+        end
+        
         filename = myfiles(j).name;
         I = im2double(imread(filename));        
         [X Y Z] = size(I);
@@ -95,8 +139,20 @@ for k = 1:nFolder
         else
             J = I;
         end
-        vals = importimg(imgGraph,J);
-        TestSet(i + j, :) = vals;
+        if X~=192
+            K = imresize(J, [192 168]);
+            clear J
+            J = K;
+            X = 192;
+            Y = 168;
+        end
+        %J = single_scale_self_quotient_image(J);
+        %vals = reshape(J, 1, X*Y);
+        vals = importimg(imgGraph,J, [x y]);
+        vals = spv_sqi(vals, edges, 5, 3, 0, W);
+        %vals = normalize(vals);
+        TestSet(i + j-nTrain + fov, :) = vals;
+        
     end
     i = i + nTest;
 end
@@ -106,9 +162,10 @@ Mean = sum(TestSet,1)/nTestTotal;
 for i = 1:nTestTotal
     TestSet(i,:) = TestSet(i,:) - Mean;
 end
-
+clear Mean
 % Test image read from Test and comparing with nTrain images in reduced
 % dimensional space of size ev
+
 
 for i = 1:nTestTotal
     TestVect(:,i) = (N)'*(TestSet(i,:))'; % Testing set
@@ -118,25 +175,36 @@ for i = 1:nTestTotal
     Z1 = TestVect(:,i);
     for j = 1:nTrainTotal
         Z2 = TrainVect(:,j);
-        Dist(j)= (Z1-Z2)'*(Z1-Z2); % Distance between Z1 and Z2
+        Dist(j)= ((Z1-Z2)'*(Z1-Z2)); % Distance between Z1 and Z2
     end
     % Finding index of the least distant sample
     [value, index] = min(Dist);
-    Tracker(i) = index;
+    Tracker(var, i) = index;
+    error(var,i) = value;
 end
-
+figure, plot(Tracker);
 % Checking Classification accuracy
 accuracy = 0;
 cnt = 1;
 tmpcnt = 1;
-for i = 1:nFolder
-    for j = cnt: cnt + 4
-        if ((Tracker(tmpcnt) >= cnt) & (Tracker(tmpcnt) <= cnt + 4))
+sum = 0;
+
+for i = 1:nFolder-1
+    i
+    for j = cnt: cnt + nTest-1
+        if ((Tracker(tmpcnt) >= cnt) & (Tracker(tmpcnt) <= cnt + nTrain-1))
             accuracy = accuracy + 1;
+            %correct_error(tmpcnt) = error(cnt);
+        else
+            %incorrect_error(tmpcnt) = error(cnt);
         end
-        tmpcnt = tmpcnt + 1;
+        tmpcnt = tmpcnt + 1
     end
-    cnt = cnt + nTest;
+    cnt = cnt + nTrain;
 end
-        
-accuracy = (accuracy)/2
+accuracy*100/(nTest*38)
+% figure
+% subplot(1,2,1)
+% imshow(J)
+% subplot(1,2,2)
+% showvoronoi(vals,voronoiStruct)
