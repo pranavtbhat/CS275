@@ -45,9 +45,9 @@ for k = 1:nFolder
         else
             J = I;
         end
-        K = reshape(J, 1, X*Y);  %trad PCA
+        %K = reshape(J, 1, X*Y);  %trad PCA
         %use imgimport
-        %K = importimg(imgGraph,J);
+        K = importimg(imgGraph,J);
         TrainSet(i + j, :) = K;
     end
     i = i + nTrain;
@@ -79,9 +79,9 @@ for k = 1:nFolder
         else
             J = I;
         end
-        K = reshape(J, 1, X*Y);
+        %K = reshape(J, 1, X*Y);
         
-        %K = importimg(imgGraph,J);
+        K = importimg(imgGraph,J);
         TestSet(i + j, :) = K;
     end
     i = i + nTest;
