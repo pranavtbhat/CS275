@@ -5,9 +5,9 @@ clc
 %% Locate images
 image_dir = "";
 if ismac
-    image_dir = '/../resources/Dataset for ICA/Train/s';
+    image_dir = '/../resources/ORL/Train/s';
 else
-    image_dir = '\..\resources\Dataset for ICA\Train\s';
+    image_dir = '\..\resources\ORL\Train\s';
 end
 
 
@@ -19,6 +19,7 @@ nFolder = 40; % No. of folders
 nTrain = 5; % No. of images per subject for train
 nTest = 5; % No. of images per subject for test
 nTrainTotal = nTrain*nFolder;
+
 
 % Training Phase
 % Loading the images to compute TrainSet, 200 x 10304 matrix - 
@@ -44,7 +45,7 @@ for k = 1:nFolder
         end
         K = reshape(J, 1, X*Y);  %trad PCA
         %use imgimport
-        % K = importimg(imgGraph,J);
+        K = importimg(imgGraph,J);
         TrainSet(:, i + j) = K;
         
         TrainTarget(label, i + j) = 1;
@@ -83,7 +84,7 @@ for k = 1:nFolder
         end
         K = reshape(J, 1, X*Y);
         
-        %K = importimg(imgGraph,J);
+        K = importimg(imgGraph,J);
         TestSet(:, i + j) = K;
         TestTarget(label, i + j) = 1;
     end
@@ -106,9 +107,9 @@ net = patternnet(hiddenLayerSize);
 
 
 % Set up Division of Data for Training, Validation, Testing
-net.divideParam.trainRatio = 70/100;
-net.divideParam.valRatio = 15/100;
-net.divideParam.testRatio = 15/100;
+net.divideParam.trainRatio = 50/100;
+net.divideParam.valRatio = 0/100;
+net.divideParam.testRatio = 50/100;
 
 
 % Train the Network
@@ -120,6 +121,10 @@ errors = gsubtract(targets,outputs);
 performance = perform(net,targets,outputs)
 
 % View the Network
-view(net)
+%view(net)
 
-figure, plotperform(tr)
+%figure, plotperform(tr)
+
+tInd = tr.testInd;
+tstOutputs = net(inputs(:,tInd));
+tstPerform = perform(net, targets(:,tInd), tstOutputs)
