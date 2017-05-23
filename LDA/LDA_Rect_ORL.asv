@@ -45,7 +45,9 @@ for k = 1:nFolder
         else
             J = I;
         end
-        vals = importimg(imgGraph,J);
+        vals = reshape(J, 1, X*Y);
+        %vals = importimg(imgGraph,J);
+        %vals = spv_sqi(vals, edges, 5, 3, 0, W);
         TrainSet(i + j, :) = vals;
         id(i + j) = k;   
     end
@@ -59,7 +61,7 @@ for i = 1:nTrainTotal
     TrainSet(i,:) = TrainSet(i,:) - Mean;
 end
 
-[A, T] = directlda(TrainSet, id, ev, 'directlda');
+[A, T] = directlda(TrainSet, id, 25, 'directlda');
 N = A';
 
 % Testing Phase Preparation
@@ -81,8 +83,12 @@ for k = 1:nFolder
         else
             J = I;
         end
-        vals = importimg(imgGraph,J);
-        TestSet(i + j, :) = vals;
+        %J = single_scale_self_quotient_image(J);
+        vals = reshape(J, 1, X*Y);
+        %vals = importimg(imgGraph,J, [x y]);
+        %vals = spv_sqi(vals, edges, 5, 3, 0, W);
+        TestSet(i + j + fov, :) = vals;
+        
     end
     i = i + nTest;
 end
@@ -115,7 +121,7 @@ for i = 1:nTestTotal
     Tracker(i) = index;
     error(i) = value;
 end
-% figure, plot(Tracker);
+%figure, plot(Tracker);
 % Checking Classification accuracy
 accuracy = 0;
 cnt = 1;

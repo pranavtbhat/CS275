@@ -1,16 +1,16 @@
 % Script for face recognition using LDA and 1-NN classifier on ORL Image 
-% Database [SPACE VARIANT VERSION]
+% Database [TRADITIONAL]
 % - Pranav Sodhani (04/23/2017)
 % =======================================================================
 % About Training set:
 % Number of subjects: 40
 % Number of Images per subject: 5
-% Image size: 92 x 112 (jpg format)
+% Image size: 92 x 112 (pgm format)
 % =======================================================================
 % About Testing set:
 % Number of subjects: 40
 % Number of Images per subject: 5
-% Image size: 92 x 112 (jpg format)
+% Image size: 92 x 112 (pgm format)
 % =======================================================================
 
 close all
@@ -29,18 +29,13 @@ load baboon6400_256.mat
 % Loading the images to compute TrainSet, 200 x 10304 matrix - 
 fpath = mfilename('fullpath');
 [path fname ext] = fileparts(fpath);
-%W = spv_gaussfilter(edges,points, 3);
 i = 0;
-x = 46;
-y = 56;
-var = 1;
 for k = 1:nFolder
     temp = sprintf('%d', k);
     folder = strcat(path,'\Train\s', temp);
     cd(folder);
     myfiles = dir('*.pgm');
     n = length(myfiles);
-    fov = 0;
     for j = 1:n
         filename = myfiles(j).name;
         I = im2double(imread(filename));
@@ -50,10 +45,7 @@ for k = 1:nFolder
         else
             J = I;
         end
-        %J = single_scale_self_quotient_image(J);
         vals = reshape(J, 1, X*Y);
-        %vals = importimg(imgGraph,J, [x y]);
-        %vals = spv_sqi(vals, edges, 5, 3, 0, W);
         TrainSet(i + j, :) = vals;
         id(i + j) = k;   
     end
@@ -67,14 +59,13 @@ for i = 1:nTrainTotal
     TrainSet(i,:) = TrainSet(i,:) - Mean;
 end
 
-[A, T] = directlda(TrainSet, id, 25, 'directlda');
+[A, T] = directlda(TrainSet, id, ev, 'directlda');
 N = A';
 
 % Testing Phase Preparation
 % Loading the images to compute TestSet matrix, typically sized: 200 x 10304
 nTestTotal = nTest*nFolder;
 i = 0;
-fov = 0;
 for k = 1:nFolder
     temp = sprintf('%d', k);
     folder = strcat(path,'\Test\s', temp);
@@ -90,11 +81,8 @@ for k = 1:nFolder
         else
             J = I;
         end
-        %J = single_scale_self_quotient_image(J);
         vals = reshape(J, 1, X*Y);
-        %vals = importimg(imgGraph,J, [x y]);
-        %vals = spv_sqi(vals, edges, 5, 3, 0, W);
-        TestSet(i + j + fov, :) = vals;
+        TestSet(i + j, :) = vals;
         
     end
     i = i + nTest;
@@ -125,8 +113,8 @@ for i = 1:nTestTotal
     end
     % Finding index of the least distant sample
     [value, index] = min(Dist);
-    Tracker(var, i) = index;
-    error(var,i) = value;
+    Tracker(i) = index;
+    error(i) = value;
 end
 %figure, plot(Tracker);
 % Checking Classification accuracy
